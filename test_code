@@ -1,0 +1,53 @@
+import org.apache.commons.net.ftp.FTP;
+import org.apache.commons.net.ftp.FTPClient;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+
+public class AutoBackupSystem {
+    private static final String SERVER_ADDRESS = "your_server_address";
+    private static final int SERVER_PORT = 21;
+    private static final String USERNAME = "your_username";
+    private static final String PASSWORD = "your_password";
+
+    public static void main(String[] args) {
+        String sourceDirectory = "path_to_user_directory";
+        String remoteDirectory = "/backup/"; // Destination directory on the server
+
+        FTPClient ftpClient = new FTPClient();
+        try {
+            ftpClient.connect(SERVER_ADDRESS, SERVER_PORT);
+            ftpClient.login(USERNAME, PASSWORD);
+            ftpClient.enterLocalPassiveMode();
+            ftpClient.setFileType(FTP.BINARY_FILE_TYPE);
+
+            File sourceDir = new File(sourceDirectory);
+            backupDirectory(sourceDir, remoteDirectory, ftpClient);
+
+            ftpClient.logout();
+            ftpClient.disconnect();
+            System.out.println("Backup completed successfully!");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void backupDirectory(File sourceDir, String remoteDir, FTPClient ftpClient) throws IOException {
+        if (sourceDir.isDirectory()) {
+            ftpClient.makeDirectory(remoteDir + sourceDir.getName());
+            File[] files = sourceDir.listFiles();
+            if (files != null) {
+                for (File file : files) {
+                    if (file.isFile()) {
+                        FileInputStream inputStream = new FileInputStream(file);
+                        ftpClient.storeFile(remoteDir + sourceDir.getName() + "/" + file.getName(), inputStream);
+                        inputStream.close();
+                    } else if (file.isDirectory()) {
+                        backupDirectory(file, remoteDir + sourceDir.getName() + "/", ftpClient);
+                    }
+                }
+            }
+        }
+    }
+}
